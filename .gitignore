@@ -1,0 +1,10 @@
+*.pyc
+*~
+.cache
+.eggs
+*.egg-info
+*.egg
+*#
+.#*
+dist
+build
