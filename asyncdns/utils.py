@@ -1,4 +1,10 @@
 import base64 as b64
+import struct
+
+from .wireformat import *
+from . import constants
+
+MAX_PACKET_SIZE = 4000
 
 _rcode_strings = [ 'No error',
                    'Format error',
@@ -130,3 +136,31 @@ def decode_pascal_string(packet, ptr):
     s = packet[ptr:ptr+slen]
     ptr += slen
     return (s.decode('utf8'), ptr)
+
+def build_dns_packet(uid, query, wants_recursion=False, unicast=False):
+    flags = QUERY
+    if wants_recursion:
+        flags |= RD
+    header = struct.pack(b'>HHHHHH', uid, flags, 1, 0, 0, 1)
+    packet = [header]
+
+    for label in query.name.split(b'.'):
+        if len(label) > 63:
+            raise ValueError('DNS label too long')
+
+        if len(label) == 0:
+            continue
+
+        packet.append(struct.pack(b'>B', len(label)))
+        packet.append(label)
+
+    q_class = query.q_class
+    if unicast:
+        q_class |= 0x8000
+    packet.append(struct.pack(b'>BHH', 0, query.q_type, q_class))
+
+    # Add an OPT record to indicate EDNS support
+    packet.append(struct.pack(b'>BHHLH', 0, constants.OPT, MAX_PACKET_SIZE,
+                              DO, 0))
+
+    return b''.join(packet)

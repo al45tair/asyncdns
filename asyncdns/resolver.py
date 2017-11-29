@@ -14,36 +14,16 @@ import sys
 import pkg_resources
 import re
 
-from .constants import *
 from . import rr
-from .utils import decode_domain, decode_pascal_string, rcode_to_string
+from .constants import *
+from .utils import decode_domain, decode_pascal_string, rcode_to_string, \
+    build_dns_packet, MAX_PACKET_SIZE
+from .wireformat import *
+from .timeout import Timeout
 
-TIMEOUT         = 1000
+TIMEOUT         = 30
 MAX_TRIES       = 5
-MAX_PACKET_SIZE = 4000
 MAX_TTL         = 3 * 3600
-
-# These are for DNS messages
-QR          = 0x8000
-OPCODE_MASK = 0x7800
-QUERY       = 0x0000
-IQUERY      = 0x0800
-STATUS      = 0x1000
-#           = 0x1800
-NOTIFY      = 0x2000
-UPDATE      = 0x2800
-
-AA          = 0x0400
-TC          = 0x0200
-RD          = 0x0100
-RA          = 0x0080
-Z           = 0x0040
-AD          = 0x0020
-CD          = 0x0010
-
-DO          = 0x8000
-
-RCODE_MASK  = 0x000f
 
 _rng = random.SystemRandom()
 
@@ -68,22 +48,6 @@ for line in _named_root.splitlines():
         _ipv6_roots.append((addr, 53))
 
 _all_roots = _ipv4_roots + _ipv6_roots
-
-class Timeout(object):
-    def __init__(self, timeout, callback):
-        loop = asyncio.get_event_loop()
-        loop.call_later(timeout, self.fire)
-        self.callback = callback
-        self.cancelled = False
-
-    def fire(self):
-        if self.cancelled:
-            return
-        self.callback()
-
-    def cancel(self):
-        self.cancelled = True
-        self.callback = None
 
 class Query(object):
     """Represents a DNS query."""
@@ -226,31 +190,6 @@ class DNSProtocol(object):
             self._timeout.cancel()
             self._timeout = None
 
-    def build_dns_packet(self, uid, query, wants_recursion=False):
-        flags = QUERY
-        if wants_recursion:
-            flags |= RD
-        header = struct.pack(b'>HHHHHH', uid, flags, 1, 0, 0, 1)
-        packet = [header]
-
-        for label in query.name.split(b'.'):
-            if len(label) > 63:
-                raise ValueError('DNS label too long')
-
-            if len(label) == 0:
-                continue
-
-            packet.append(struct.pack(b'>B', len(label)))
-            packet.append(label)
-
-        packet.append(struct.pack(b'>BHH', 0, query.q_type, query.q_class))
-
-        # Add an OPT record to indicate EDNS support
-        packet.append(struct.pack(b'>BHHLH', 0, OPT, MAX_PACKET_SIZE,
-                                  DO, 0))
-
-        return b''.join(packet)
-
     def bind_random_port(self, sock):
         while True:
             port = _rng.randrange(1024, 65536)
@@ -286,8 +225,8 @@ class DNSProtocol(object):
         server_addr = (str(self.server[0]), self.server[1])
 
         if not self.using_tcp:
-            packet = self.build_dns_packet(self.uid, self.query,
-                                           not self.recursive)
+            packet = build_dns_packet(self.uid, self.query,
+                                      not self.recursive)
 
             if len(packet) > MAX_PACKET_SIZE:
                 self.using_tcp = True
@@ -312,7 +251,7 @@ class DNSProtocol(object):
                     self.fail_waiters(exc)
                     return
 
-                packet = self.build_dns_packet(uid, query, not self.recursive)
+                packet = build_dns_packet(uid, query, not self.recursive)
                 len_bytes = struct.pack(b'>H', len(packet))
 
                 transport, _ = f.result()
@@ -365,7 +304,6 @@ class DNSProtocol(object):
                 # This means we're re-querying using TCP, or recursing
                 self._buffer = b''
         except:
-            raise
             e = sys.exc_info()[0]
             self.fail_waiters(e)
 
@@ -560,7 +498,7 @@ class DNSProtocol(object):
 
     def fire_waiters(self, reply):
         self.cancel_timeout()
-        if self.should_cache:
+        if self.should_cache and reply.rcode in (NOERROR, NXDOMAIN):
             self.resolver().cache_reply(self.query, reply)
         for f in self._waiters:
             f.set_result(reply)
