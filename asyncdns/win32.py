@@ -22,15 +22,18 @@ class IP_ADDRESS_STRING(Structure):
 IP_MASK_STRING = IP_ADDRESS_STRING
 
 class IP_ADDR_STRING(Structure):
-    _fields_ = [('Next', POINTER(IP_ADDR_STRING)),
-                ('IpAddress', IP_ADDRESS_STRING),
-                ('IpMask', IP_MASK_STRING),
-                ('Context', DWORD)]
+    pass
+
+IP_ADDR_STRING._fields_ = [('Next', POINTER(IP_ADDR_STRING)),
+                           ('IpAddress', IP_ADDRESS_STRING),
+                           ('IpMask', IP_MASK_STRING),
+                           ('Context', DWORD)]
+
 PIP_ADDR_STRING = POINTER(IP_ADDR_STRING)
 
-MAX_HOSTNAME_LEN = ###
-MAX_DOMAIN_NAME_LEN = ###
-MAX_SCOPE_ID_LEN = ###
+MAX_HOSTNAME_LEN = 128
+MAX_DOMAIN_NAME_LEN = 128
+MAX_SCOPE_ID_LEN = 256
 class FIXED_INFO(Structure):
     _fields_ = [('HostName', c_char * (MAX_HOSTNAME_LEN + 4)),
                 ('DomainName', c_char * (MAX_DOMAIN_NAME_LEN + 4)),
@@ -44,7 +47,7 @@ class FIXED_INFO(Structure):
 PFIXED_INFO = POINTER(FIXED_INFO)
 
 ERROR_SUCCESS = 0
-ERROR_BUFFER_OVERFLOW = ###FIXME
+ERROR_BUFFER_OVERFLOW = 111
 
 GetNetworkParams = iphlpapi.GetNetworkParams
 GetNetworkParams.restype = DWORD
@@ -62,22 +65,26 @@ class SystemResolver(Resolver):
         servers = []
 
         outLen = ULONG(0)
-        GetNetworkParams(None, byref(outLen))
-        buf = create_string_buffer(outLen)
+        ret = GetNetworkParams(None, byref(outLen))
+        if ret != ERROR_BUFFER_OVERFLOW:
+            raise Exception('Unexpected error {:08x}'.format(ret))
+        buf = create_string_buffer(outLen.value)
         pfi = cast(buf, PFIXED_INFO)
         GetNetworkParams(pfi, byref(outLen))
         fi = pfi.contents
 
         try:
-            addr = ipaddress.ip_address(fi.DnsServerList.IpAddress.String)
+            saddr = fi.DnsServerList.IpAddress.String
+            addr = ipaddress.ip_address(saddr.decode('ascii'))
             servers.append((addr, 53))
         except ValueError:
             pass
 
         pipa = fi.DnsServerList.Next
-        while pipa != None:
+        while pipa:
             try:
-                addr = ipaddress.ip_address(pipa.contents.IPAddress.String)
+                saddr = pipa.contents.IPAddress.String
+                addr = ipaddress.ip_address(saddr.decode('ascii'))
                 servers.append((addr, 53))
             except ValueError:
                 pass

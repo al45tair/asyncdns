@@ -3,12 +3,18 @@ import re
 import os
 import time
 import asyncio
+import sys
 
 from . import rr
 
 from .constants import *
 from .wireformat import *
 from .resolver import Query, Reply
+
+if sys.platform == 'win32':
+    _hosts_path = 'C:/Windows/System32/drivers/etc/hosts'
+else:
+    _hosts_path = '/etc/hosts'
 
 _space_re = re.compile(b'\\s+')
 class HostsResolver(object):
@@ -27,7 +33,7 @@ class HostsResolver(object):
     def read_hosts(self):
         self._hosts = {}
         self._addrs = {}
-        with open('/etc/hosts', 'rb') as f:
+        with open(_hosts_path, 'rb') as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith(b'#'):
@@ -49,13 +55,20 @@ class HostsResolver(object):
                 l.append(addr)
                 self._addrs[addr] = name
 
+        # Always add localhost if it isn't there already
+        lhv4 = ipaddress.ip_address('127.0.0.1')
+        lhv6 = ipaddress.ip_address('::1')
+        self._hosts[b'localhost'] = [ lhv4, lhv6 ]
+        self._addrs[lhv4] = b'localhost'
+        self._addrs[lhv6] = b'localhost'
+        
     def maybe_read_hosts(self):
         now = time.time()
         if self._hosts_timestamp is not None \
            and now - self._hosts_timestamp < 30:
             return
 
-        s = os.stat('/etc/hosts')
+        s = os.stat(_hosts_path)
         if self._hosts_timestamp is None \
            or s.st_mtime > self._hosts_timestamp:
             self._hosts_timestamp = s.st_mtime

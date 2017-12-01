@@ -70,7 +70,7 @@ class MDNSQuery(object):
 
         self._retry_count += 1
         if self._retry_count >= MAX_TRIES:
-            self.fail_waiters(OSError(errno.ETIMEDOUT))
+            self.fire_waiters(Reply(QR, NXDOMAIN, [], [], []))
             return
 
         self.set_timeout(TIMEOUT)
@@ -83,6 +83,8 @@ class MDNSQuery(object):
 
         self.protocol().send_packet(packet, self.use_ipv6)
 
+_rng = random.SystemRandom()
+
 class MulticastResolver(object):
     """Resolves queries using Multicast DNS (aka MDNS, aka Bonjour)."""
 
@@ -91,6 +93,18 @@ class MulticastResolver(object):
         self._queries = {}
         self._queue = []
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # Bind this socket - we need to do this on Windows or we get an
+        # exception inside asyncio because it tries to use getsockname().
+        while True:
+            port = _rng.randrange(1024, 65536)
+            try:
+                self._socket.bind(('0.0.0.0', port))
+                break
+            except OSError as e:
+                if e.errno not in (errno.EADDRINUSE, EADDRNOTAVAIL):
+                    raise
+        
         ip_mreq = b'\xe0\x00\x00\xfb\x00\x00\x00\x00'
         self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
                                 ip_mreq)
@@ -116,8 +130,13 @@ class MulticastResolver(object):
         self.transport.abort()
 
     def __del__(self):
-        self.close()
-
+        # On Windows, we can get a (harmless) RuntimeError here from trying
+        # to abort the transport after the event loop has finished.
+        try:
+            self.close()
+        except RuntimeError:
+            pass
+    
     def connection_made(self, transport):
         self.transport = transport
         for item in self._queue:
