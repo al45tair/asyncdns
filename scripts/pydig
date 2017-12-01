@@ -5,7 +5,7 @@ import asyncdns
 import sys
 
 def main(args):
-    resolver = asyncdns.Resolver()
+    resolver = asyncdns.SystemResolver()
     loop = asyncio.get_event_loop()
 
     query = asyncdns.Query(args[1], asyncdns.A, asyncdns.IN)
