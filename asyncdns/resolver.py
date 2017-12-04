@@ -54,7 +54,15 @@ class Query(object):
 
     def __init__(self, name, q_type, q_class):
         # The name being queried
-        if isinstance(name, str):
+        if isinstance(name, ipaddress.IPv4Address):
+            name = b'.'.join(str(name).encode('ascii').split(b'.')[::-1]) \
+                   + b'.in-addr.arpa'
+            self.name = name
+        elif isinstance(name, ipaddress.IPv6Address):
+            name = '.'.join(name.exploded.replace(':','')[::-1]).encode('ascii')\
+                   + b'.ip6.arpa'
+            self.name = name
+        elif isinstance(name, str):
             name = name.rstrip('.')
             if name == '':
                 self.name = b''

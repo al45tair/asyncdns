@@ -61,7 +61,7 @@ class HostsResolver(object):
         self._hosts[b'localhost'] = [ lhv4, lhv6 ]
         self._addrs[lhv4] = b'localhost'
         self._addrs[lhv6] = b'localhost'
-        
+
     def maybe_read_hosts(self):
         now = time.time()
         if self._hosts_timestamp is not None \
