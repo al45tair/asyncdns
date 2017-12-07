@@ -21,7 +21,7 @@ requires=[]
 if sys.version_info < (3,4):
     requires.append('asyncio')
 
-setup(name='asyncdns',
+setup(name='asyncdns2',
       version='0.1.0',
       description='Pure Python asynchronous DNS via asyncio',
       long_description=long_desc,
@@ -33,7 +33,7 @@ setup(name='asyncdns',
       classifiers=[
           'Development Status :: 4 - Beta',
           'License :: OSI Approved :: MIT License',
-          'Topic :: Integner :: Name Service (DNS)',
+          'Topic :: Internet :: Name Service (DNS)',
           'Framework :: AsyncIO'
           ],
       package_data = {
@@ -45,4 +45,4 @@ setup(name='asyncdns',
       cmdclass={
           'test': PyTest
           },
-      provides=['asyncdns'])
+      provides=['asyncdns2'])
