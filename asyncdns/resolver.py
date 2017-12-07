@@ -13,6 +13,7 @@ import encodings.idna
 import sys
 import pkg_resources
 import re
+import errno
 
 from . import rr
 from .constants import *
@@ -30,6 +31,8 @@ _rng = random.SystemRandom()
 # Load and parse the named.root file
 _ipv4_roots = []
 _ipv6_roots = []
+
+_ipv4_re = re.compile('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 
 _named_root = pkg_resources.resource_string('asyncdns', 'named.root')\
                            .decode('ascii')
@@ -158,7 +161,7 @@ class RoundRobinServer(object):
         self.servers = servers
         self.server_ndx = 0
 
-    def next_server(self):
+    def __next__(self):
         server = self.servers[self.server_ndx]
         self.server_ndx = (self.server_ndx + 1) % len(self.servers)
         return server
@@ -167,7 +170,7 @@ class RandomServer(object):
     def __init__(self, servers):
         self.servers = servers
 
-    def next_server(self):
+    def __next__(self):
         server_ndx = random.randrange(0, len(self.servers))
         return self.servers[server_ndx]
 
@@ -203,10 +206,10 @@ class DNSProtocol(object):
             port = _rng.randrange(1024, 65536)
 
             try:
-                sock.bind(('0.0.0.0', port))
+                sock.bind(('::', port))
                 break
             except OSError as e:
-                if e.errno not in (errno.EADDRINUSE, EADDRNOTAVAIL):
+                if e.errno not in (errno.EADDRINUSE, errno.EADDRNOTAVAIL):
                     raise
         return port
 
@@ -228,9 +231,14 @@ class DNSProtocol(object):
 
         loop = asyncio.get_event_loop()
 
-        self.server = self.server_selector.next_server()
+        self.server = next(self.server_selector)
 
-        server_addr = (str(self.server[0]), self.server[1])
+        if (isinstance(self.server[0], ipaddress.IPv4Address)
+            or (isinstance(self.server[0], str)
+                and _ipv4_re.match(self.server[0]))):
+            self.server = ('::ffff:' + str(self.server[0]), self.server[1])
+
+        self.server = (str(self.server[0]), self.server[1])
 
         if not self.using_tcp:
             packet = build_dns_packet(self.uid, self.query,
@@ -243,10 +251,11 @@ class DNSProtocol(object):
         if self.using_tcp:
             self._buffer = b''
 
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
             self.bind_random_port(sock)
             f = asyncio.ensure_future(loop.create_connection(lambda: self,
-                                                             host=server_addr,
+                                                             host=self.server,
                                                              sock=sock))
 
             def callback(f):
@@ -273,7 +282,8 @@ class DNSProtocol(object):
         else:
             self._buffer = None
 
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
             self.bind_random_port(sock)
             f = asyncio.ensure_future(loop.create_datagram_endpoint(lambda: self,
                                                                     sock=sock))
@@ -290,7 +300,7 @@ class DNSProtocol(object):
 
                 transport, _ = f.result()
                 try:
-                    transport.sendto(packet, addr=server_addr)
+                    transport.sendto(packet, addr=self.server)
                 except:
                     e = sys.exc_info()[0]
                     self.fail_waiters(e)
@@ -302,7 +312,7 @@ class DNSProtocol(object):
 
     def datagram_received(self, data, addr):
         # Ignore responses from the wrong server
-        if addr != (str(self.server[0]), self.server[1]):
+        if addr[:2] != self.server:
             return
 
         try:
