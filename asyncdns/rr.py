@@ -1,14 +1,17 @@
 import ipaddress
 import struct
+import encodings
 
 from . import constants, utils
-from .utils import rrclass_to_string, rrtype_to_string, escape_string
+from .utils import rrclass_to_string, rrtype_to_string, escape_string, \
+     domain_to_unicode, domain_from_unicode
 
 _rr_registry = {}
 
 class RR(object):
     def __init__(self, name, rr_type, rr_class, ttl):
         self.name = name
+        self.unicode_name = domain_to_unicode(name)
         self.rr_type = rr_type
         self.rr_class = rr_class
         self.ttl = ttl
@@ -78,7 +81,8 @@ class CNAME(RR):
     def __init__(self, name, ttl, cname):
         super(CNAME, self).__init__(name, constants.CNAME, constants.IN, ttl)
         self.cname = cname
-
+        self.unicode_cname = domain_to_unicode(cname)
+    
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
                                            self.ttl,
@@ -117,6 +121,7 @@ class MB(RR):
     def __init__(self, name, ttl, host):
         super(MB, self).__init__(name, constants.MB, constants.IN, ttl)
         self.host = host
+        self.unicode_host = domain_to_unicode(host)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -135,6 +140,7 @@ class MF(RR):
     def __init__(self, name, ttl, host):
         super(MF, self).__init__(name, constants.MF, constants.IN, ttl)
         self.host = host
+        self.unicode_host = domain_to_unicode(host)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -153,6 +159,7 @@ class MG(RR):
     def __init__(self, name, ttl, mailbox):
         super(MG, self).__init__(name, constants.MG, constants.IN, ttl)
         self.mailbox = mailbox
+        self.unicode_mailbox = domain_to_unicode(mailbox)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -172,6 +179,8 @@ class MINFO(RR):
         super(MINFO, self).__init__(name, constants.MINFO, constants.IN, ttl)
         self.rmailbox = rmailbox
         self.emailbox = emailbox
+        self.unicode_rmailbox = domain_to_unicode(rmailbox)
+        self.unicode_emailbox = domain_to_unicode(emailbox)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -211,6 +220,7 @@ class MX(RR):
         super(MX, self).__init__(name, constants.MX, constants.IN, ttl)
         self.preference = preference
         self.exchange = exchange
+        self.unicode_exchange = domain_to_unicode(exchange)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -248,6 +258,7 @@ class NS(RR):
     def __init__(self, name, ttl, host):
         super(NS, self).__init__(name, constants.NS, constants.IN, ttl)
         self.host = host
+        self.unicode_host = domain_to_unicode(host)
 
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
@@ -265,8 +276,22 @@ class NS(RR):
 class PTR(RR):
     def __init__(self, name, ttl, dname):
         super(PTR, self).__init__(name, constants.PTR, constants.IN, ttl)
-        self.dname = dname
+        self.address = None
 
+        try:
+            if name.endswith(b'.in-addr.arpa'):
+                addr = b'.'.join(name[:-13].split(b'.')[::-1])
+                self.address = ipaddress.ip_address(addr.decode('ascii'))
+            elif name.endswith(b'.ip6.arpa'):
+                addr = b'.'.join(name[:-9].split(b'.')[::-1])
+                addr = b':'.join([addr[n:n+4] for n in range(0,len(addr),4)])
+                self.address = ipaddress.ip_address(addr.decode('ascii')
+        except ValueError:
+            pass
+        
+        self.dname = dname
+        self.unicode_dname = domain_to_unicode(dname)
+        
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
                                            self.ttl,
@@ -285,7 +310,9 @@ class SOA(RR):
                  refresh, retry, expire, minimum):
         super(SOA, self).__init__(name, constants.SOA, constants.IN, ttl)
         self.mname = mname
+        self.unicode_mname = domain_to_unicode(mname)
         self.rname = rname
+        self.unicode_rname = domain_to_unicode(rname)
         self.serial = serial
         self.refresh = refresh
         self.retry = retry

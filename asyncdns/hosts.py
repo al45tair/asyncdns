@@ -1,6 +1,7 @@
 import ipaddress
 import re
 import os
+import os.path
 import time
 import asyncio
 import sys
@@ -12,7 +13,8 @@ from .wireformat import *
 from .resolver import Query, Reply
 
 if sys.platform == 'win32':
-    _hosts_path = 'C:/Windows/System32/drivers/etc/hosts'
+    _hosts_path = os.path.join(os.environ('WINDIR'),
+                               '\\System32\\drivers\\etc\\hosts')
 else:
     _hosts_path = '/etc/hosts'
 
@@ -25,6 +27,9 @@ class HostsResolver(object):
         self._hosts = {}
         self._addrs = {}
 
+    def close(self):
+        pass
+    
     def check_domain(self, query):
         for label in query.name.split(b'.'):
             if len(label) > 63:

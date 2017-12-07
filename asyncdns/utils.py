@@ -130,12 +130,21 @@ def decode_domain(packet, ptr):
 
     return (b'.'.join(result), ptr)
 
+def domain_to_unicode(domain):
+    return '.'.join([encodings.idna.ToUnicode(label)
+                     for label in domain.split(b'.')])
+
+def domain_from_unicode(domain):
+    domain = domain.rstrip('.')
+    return b'.'.join([encodings.idna.ToASCII(label)
+                      for label in domain.split('.')])
+
 def decode_pascal_string(packet, ptr):
     slen = packet[ptr]
     ptr += 1
     s = packet[ptr:ptr+slen]
     ptr += slen
-    return (s.decode('utf8'), ptr)
+    return (s.decode('latin1'), ptr)
 
 def build_dns_packet(uid, query, wants_recursion=False, unicast=False):
     flags = QUERY

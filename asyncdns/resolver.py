@@ -17,7 +17,7 @@ import re
 from . import rr
 from .constants import *
 from .utils import decode_domain, decode_pascal_string, rcode_to_string, \
-    build_dns_packet, MAX_PACKET_SIZE
+    build_dns_packet, MAX_PACKET_SIZE, domain_from_unicode
 from .wireformat import *
 from .timeout import Timeout
 
@@ -67,8 +67,7 @@ class Query(object):
             if name == '':
                 self.name = b''
             else:
-                self.name = b'.'.join([encodings.idna.ToASCII(label)
-                                       for label in name.split('.')])
+                self.name = domain_from_unicode(name)
         else:
             name = name.rstrip(b'.')
             self.name = name
@@ -158,7 +157,7 @@ class RoundRobinServer(object):
         self.servers = servers
         self.server_ndx = 0
 
-    def next_server(self):
+    def __next__(self):
         server = self.servers[self.server_ndx]
         self.server_ndx = (self.server_ndx + 1) % len(self.servers)
         return server
@@ -167,7 +166,7 @@ class RandomServer(object):
     def __init__(self, servers):
         self.servers = servers
 
-    def next_server(self):
+    def __next__(self):
         server_ndx = random.randrange(0, len(self.servers))
         return self.servers[server_ndx]
 
@@ -228,8 +227,11 @@ class DNSProtocol(object):
 
         loop = asyncio.get_event_loop()
 
-        self.server = self.server_selector.next_server()
-
+        try:
+            self.server = next(self.server_selector)
+        except StopIteration as e:
+            self.fail_waiters(e)
+        
         server_addr = (str(self.server[0]), self.server[1])
 
         if not self.using_tcp:
@@ -541,8 +543,8 @@ class Resolver(object):
             if len(label) > 63:
                 raise ValueError('DNS label too long')
 
-    def lookup(self, query, servers=None, prefer_ipv6=False, should_cache=True,
-               recursive=False):
+    def lookup(self, query, servers=None, should_cache=True,
+               recursive=False, prefer_ipv6=False):
         """Perform a DNS query."""
         f = asyncio.Future()
 

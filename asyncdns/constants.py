@@ -28,6 +28,10 @@ BADMODE  = 19
 BADNAME  = 20
 BADALG   = 21
 
+# Which RFC??
+BADTRUNC  = 22
+BADCOOKIE = 23
+
 # -- RR types
 
 A          = 1
@@ -109,7 +113,6 @@ DLV        = 32769
 # -- RR class
 
 IN   = 1
-CS   = 2
 CH   = 3
 HS   = 4
 

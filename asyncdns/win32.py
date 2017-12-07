@@ -100,9 +100,9 @@ class SystemResolver(Resolver):
 
         self.read_servers()
 
-    def lookup(self, query, prefer_ipv6=False,
-               should_cache=True, recursive=False):
+    def lookup(self, query, should_cache=True, recursive=False,
+               prefer_ipv6=False):
         self.maybe_read_servers()
         return super(SystemResolver, self).lookup(query, self._servers,
-                                                  prefer_ipv6, should_cache,
-                                                  recursive)
+                                                  should_cache,
+                                                  recursive, prefer_ipv6)
