@@ -1,5 +1,6 @@
 import base64 as b64
 import struct
+import encodings
 
 from .wireformat import *
 from . import constants
