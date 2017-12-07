@@ -205,7 +205,7 @@ class DNSProtocol(object):
             port = _rng.randrange(1024, 65536)
 
             try:
-                sock.bind(('::', port))
+                sock.bind(('::0', port))
                 break
             except OSError as e:
                 if e.errno not in (errno.EADDRINUSE, errno.EADDRNOTAVAIL):
@@ -234,7 +234,7 @@ class DNSProtocol(object):
             self.server = next(self.server_selector)
         except StopIteration as e:
             self.fail_waiters(e)
-        
+
         if (isinstance(self.server[0], ipaddress.IPv4Address)
             or (isinstance(self.server[0], str)
                 and _ipv4_re.match(self.server[0]))):

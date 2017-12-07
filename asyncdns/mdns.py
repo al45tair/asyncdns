@@ -100,12 +100,12 @@ class MulticastResolver(object):
         while True:
             port = _rng.randrange(1024, 65536)
             try:
-                self._socket.bind(('::', port))
+                self._socket.bind(('::0', port))
                 break
             except OSError as e:
                 if e.errno not in (errno.EADDRINUSE, EADDRNOTAVAIL):
                     raise
-        
+
         ip_mreq = b'\xe0\x00\x00\xfb\x00\x00\x00\x00'
         self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
                                 ip_mreq)
