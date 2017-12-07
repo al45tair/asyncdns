@@ -1,6 +1,12 @@
 asyncdns - Pure Python asynchronous DNS for asyncio
 ===================================================
 
+.. image:: https://travis-ci.org/al45tair/asyncdns.svg?branch=master
+    :target: https://travis-ci.org/al45tair/asyncdns
+
+.. image:: https://readthedocs.org/projects/asyncdns/badge/?version=latest
+    :target: http://asyncdns.readthedocs.io/en/latest/?badge=latest
+
 What is this?
 =============
 
