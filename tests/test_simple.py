@@ -27,7 +27,9 @@ def test_simple_lookup_ipv6():
     try:
         loop.run_until_complete(f)
     except OSError as e:
-        if e.errno in (errno.ENETUNREACH, errno.EHOSTUNREACH):
+        if e.errno in (errno.ENETUNREACH,
+                       errno.EHOSTUNREACH,
+                       errno.EADDRNOTAVAIL):
             pytest.skip('No IPv6 connectivity')
         else:
             raise
