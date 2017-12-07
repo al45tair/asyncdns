@@ -285,13 +285,13 @@ class PTR(RR):
             elif name.endswith(b'.ip6.arpa'):
                 addr = b'.'.join(name[:-9].split(b'.')[::-1])
                 addr = b':'.join([addr[n:n+4] for n in range(0,len(addr),4)])
-                self.address = ipaddress.ip_address(addr.decode('ascii')
+                self.address = ipaddress.ip_address(addr.decode('ascii'))
         except ValueError:
             pass
-        
+
         self.dname = dname
         self.unicode_dname = domain_to_unicode(dname)
-        
+
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
                                            self.ttl,
