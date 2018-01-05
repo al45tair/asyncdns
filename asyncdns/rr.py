@@ -82,7 +82,7 @@ class CNAME(RR):
         super(CNAME, self).__init__(name, constants.CNAME, constants.IN, ttl)
         self.cname = cname
         self.unicode_cname = domain_to_unicode(cname)
-    
+
     def __str__(self):
         return '{}\t{}\t{}\t{}\t{}'.format(escape_string(self.name),
                                            self.ttl,
@@ -349,15 +349,16 @@ class TXT(RR):
                                            self.ttl,
                                            rrclass_to_string(self.rr_class),
                                            rrtype_to_string(self.rr_type),
-                                           escape_string(self.txt))
+                                           escape_string(self.text))
 
     @staticmethod
     def decode(name, rr_type, rr_class, ttl, packet, ptr, rdlen):
         text = []
-        while ptr < len(packet):
+        end = ptr + rdlen
+        while ptr < end:
             chunk, ptr = utils.decode_pascal_string(packet, ptr)
             text.append(chunk)
-        text = ''.join(text)
+        text = b''.join(text)
         return TXT(name, ttl, text)
 
 @rr(constants.WKS, constants.IN)

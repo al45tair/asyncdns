@@ -51,7 +51,7 @@ def escape_string(byte_string):
         ustr = byte_string.decode('ascii')
         return ustr
     except UnicodeError:
-        ustr = byte_string.decode('ascii', 'backslashreplace').sub('"', '\\"')
+        ustr = byte_string.decode('ascii', 'backslashreplace').replace('"', '\\"')
         return '"{}"'.format(ustr)
 
 def base64(byte_string):
@@ -145,7 +145,7 @@ def decode_pascal_string(packet, ptr):
     ptr += 1
     s = packet[ptr:ptr+slen]
     ptr += slen
-    return (s.decode('latin1'), ptr)
+    return (s, ptr)
 
 def build_dns_packet(uid, query, wants_recursion=False, unicast=False):
     flags = QUERY
