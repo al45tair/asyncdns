@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import asyncio
+import asyncdns
+import sys
+
+def main(args):
+    resolver = asyncdns.SystemResolver()
+    loop = asyncio.get_event_loop()
+
+    query = asyncdns.Query(args[1], asyncdns.TXT, asyncdns.IN)
+    f = resolver.lookup(query, ('192.168.1.1', 53))
+
+    loop.run_until_complete(f)
+
+    print(f.result())
+
+if __name__ == '__main__':
+    main(sys.argv)
