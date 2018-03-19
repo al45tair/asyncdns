@@ -92,15 +92,15 @@ class MulticastResolver(object):
         self._cache = {}
         self._queries = {}
         self._queue = []
-        self._socket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        self._socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        #self._socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
 
         # Bind this socket - we need to do this on Windows or we get an
         # exception inside asyncio because it tries to use getsockname().
         while True:
             port = _rng.randrange(1024, 65536)
             try:
-                self._socket.bind(('::0', port))
+                self._socket.bind(('0.0.0.0', port))
                 break
             except OSError as e:
                 if e.errno not in (errno.EADDRINUSE, EADDRNOTAVAIL):
