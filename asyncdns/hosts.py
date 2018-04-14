@@ -13,7 +13,7 @@ from .wireformat import *
 from .resolver import Query, Reply
 
 if sys.platform == 'win32':
-    _hosts_path = os.path.join(os.environ('WINDIR'),
+    _hosts_path = os.path.join(os.environ['WINDIR'],
                                '\\System32\\drivers\\etc\\hosts')
 else:
     _hosts_path = '/etc/hosts'
