@@ -123,7 +123,7 @@ class Reply(object):
         self.authorities = authorities
         self.additional = additional
 
-    def update_ttls(ttl):
+    def update_ttls(self, ttl):
         for answer in self.answers:
             answer.ttl = ttl
         for auth in self.authorities:

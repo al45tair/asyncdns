@@ -22,7 +22,7 @@ if sys.version_info < (3,4):
     requires.append('asyncio')
 
 setup(name='asyncdns2',
-      version='0.1.2',
+      version='0.1.3',
       description='Pure Python asynchronous DNS via asyncio',
       long_description=long_desc,
       author='Alastair Houghton',
