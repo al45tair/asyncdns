@@ -38,7 +38,7 @@ Resolver
    unnecessary network traffic or delay.
 
    .. py:method:: lookup(query, servers=None, should_cache=True,
-                         recursive=False, prefer_ipv6=False)
+                         recursive=False, prefer_ipv6=False, force_tcp=False)
 
      Perform a DNS lookup.
 
@@ -49,6 +49,8 @@ Resolver
      :param recursive: Whether to perform recursive lookups.
      :param prefer_ipv6: When doing recursive lookup, prefer servers that talk
                          over IPv6.
+     :param force_tcp: Prevents the resolver from using UDP for queries that
+		       are short enough to fit.
      :retval: An :py:class:`asyncio.Future` that will complete with a
               :py:class:`Reply`.
 
@@ -143,7 +145,7 @@ server settings have been updated.
 .. py:class:: SystemResolver
 
    .. py:method:: lookup(query, servers=None, should_cache=True,
-                         recursive=False, prefer_ipv6=False)
+                         recursive=False, prefer_ipv6=False, force_tcp=False)
 
      Perform a DNS lookup.
 
@@ -153,6 +155,8 @@ server settings have been updated.
      :param recursive: Whether to perform recursive lookups.
      :param prefer_ipv6: When doing recursive lookup, prefer servers that talk
                          over IPv6.
+     :param force_tcp: Prevents the resolver from using UDP for queries that
+		       are short enough to fit.
      :retval: An :py:class:`asyncio.Future` that will complete with a
               :py:class:`Reply`.
 

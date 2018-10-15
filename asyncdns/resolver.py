@@ -554,7 +554,7 @@ class Resolver(object):
                 raise ValueError('DNS label too long')
 
     def lookup(self, query, servers=None, should_cache=True,
-               recursive=False, prefer_ipv6=False):
+               recursive=False, prefer_ipv6=False, force_tcp=False):
         """Perform a DNS query."""
         f = asyncio.Future()
 
@@ -602,7 +602,7 @@ class Resolver(object):
         elif isinstance(servers, tuple):
             servers = RoundRobinServer([servers])
 
-        protocol = DNSProtocol(self, query, servers, uid, False,
+        protocol = DNSProtocol(self, query, servers, uid, force_tcp,
                                prefer_ipv6, should_cache, recursive)
         self._queries[query] = protocol
         protocol.add_waiter(f)

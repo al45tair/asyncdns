@@ -207,7 +207,8 @@ class SystemResolver(Resolver):
         self._update_servers()
 
     def lookup(self, query, should_cache=True, recursive=False,
-               prefer_ipv6=False):
+               prefer_ipv6=False, force_tcp=False):
         return super(SystemResolver, self).lookup(query, self._servers,
                                                   should_cache,
-                                                  recursive, prefer_ipv6)
+                                                  recursive, prefer_ipv6,
+                                                  force_tcp)
