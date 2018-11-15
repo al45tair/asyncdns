@@ -566,7 +566,7 @@ class Resolver(object):
             now = time.time()
 
             if now >= expiry:
-                del _cache[query]
+                del self._cache[query]
             else:
                 ttl_ms = expiry - now
                 ttl_s = (ttl_ms + 999) / 1000
